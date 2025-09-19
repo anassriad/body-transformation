@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Anass Riad — 90 Day Transformation</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    /* BLACK & WHITE THEME */
+    :root { --bg:#000; --fg:#fff; --muted:#bdbdbd; }
+    * {box-sizing:border-box;}
+    body {
+      background: var(--bg);
+      color: var(--fg);
+      font-family: "Helvetica Neue", Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    header {
+      text-align: center;
+      padding: 2.25rem 1rem;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    header h1 {
+      margin: 0;
+      font-size: 2.25rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+    header p { color: var(--muted); margin-top: .5rem; }
+
+    .container {
+      max-width: 1000px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+    }
+
+    .day {
+      margin-bottom: 2.5rem;
+      padding: 1rem;
+      border-radius: 10px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border: 1px solid rgba(255,255,255,0.03);
+    }
+
+    .day h2 {
+      margin: 0 0 .75rem 0;
+      font-size: 1.1rem;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+    }
+
+    .day h2 .badge {
+      display: inline-block;
+      background: var(--fg);
+      color: var(--bg);
+      padding: .15rem .5rem;
+      font-weight: 700;
+      border-radius: 6px;
+      margin-right: .75rem;
+      min-width: 48px;
+      text-align: center;
+    }
+
+    .video-wrap {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background: #000;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 6px 20px rgba(255,255,255,0.03);
+    }
+    .video-wrap iframe {
+      width: 100%;
+      height: 100%;
+      border: 0;
+    }
+
+    footer {
+      text-align: center;
+      padding: 2rem 1rem;
+      color: var(--muted);
+      border-top: 1px solid rgba(255,255,255,0.03);
+      margin-top: 3rem;
+    }
+
+    @media (max-width:600px) {
+      header h1 { font-size:1.6rem; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>From 90kg To 77kg</h1>
+    <p>Daily videos — Day 1 → Day 90</p>
+  </header>
+
+  <div class="container" id="timeline">
+    <!-- videos will be injected here -->
+  </div>
+
+  <footer>© 2025 Survival | Coach Anass Riad</footer>
+
+  <script>
+    const apiKey = "AIzaSyApcaHHkxQSgNhBirB2zUhq2IEvOK_oTXA";
+    const playlistId = "PLCXCX41yxe66UCjwtaq5cxB0vhDRn-gkY"; 
+    const maxDays = 90;
+
+    async function fetchPlaylistItemsPaginated(playlistId, maxItems = 90) {
+      const base = "https://www.googleapis.com/youtube/v3/playlistItems";
+      let items = [];
+      let pageToken = "";
+      while (true) {
+        const url = new URL(base);
+        url.searchParams.set("part", "snippet");
+        url.searchParams.set("playlistId", playlistId);
+        url.searchParams.set("maxResults", "50");
+        url.searchParams.set("key", apiKey);
+        if (pageToken) url.searchParams.set("pageToken", pageToken);
+
+        const res = await fetch(url.toString());
+        const data = await res.json();
+        if (data.error) {
+          console.error(data.error);
+          throw new Error(data.error.message || 'YouTube API error');
+        }
+        items = items.concat(data.items || []);
+        if (!data.nextPageToken || items.length >= maxItems) break;
+        pageToken = data.nextPageToken;
+      }
+      return items.slice(0, maxItems);
+    }
+
+    function renderTimeline(items) {
+      const container = document.getElementById("timeline");
+      container.innerHTML = '';
+      items.forEach((it, idx) => {
+        const videoId = it.snippet.resourceId.videoId;
+        const dayNum = idx + 1;
+        const dayDiv = document.createElement('div');
+        dayDiv.className = 'day';
+        dayDiv.innerHTML = `
+          <h2><span class="badge">Day ${dayNum}</span>${it.snippet.title || ''}</h2>
+          <div class="video-wrap">
+            <iframe src="https://www.youtube.com/embed/${videoId}" title="${it.snippet.title || ''}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+          </div>
+        `;
+        container.appendChild(dayDiv);
+      });
+    }
+
+    (async function() {
+      try {
+        const items = await fetchPlaylistItemsPaginated(playlistId, maxDays);
+        if (!items.length) {
+          document.getElementById("timeline").innerHTML = '<p style="color:#bbb">No videos found (check playlist privacy or ID).</p>';
+          return;
+        }
+        renderTimeline(items);
+      } catch (err) {
+        console.error(err);
+        document.getElementById("timeline").innerHTML = '<p style="color:#f66">Error loading videos — check console / keys / playlist privacy.</p>';
+      }
+    })();
+  </script>
+</body>
+</html>
